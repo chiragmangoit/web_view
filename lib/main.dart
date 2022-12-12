@@ -1,66 +1,104 @@
 import 'dart:async';
-import 'dart:io'; // Add this import.
+import 'dart:isolate';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:webview_flutter/webview_flutter.dart';
+import 'package:flutter_downloader/flutter_downloader.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 
-void main() {
-  runApp(
-    const MaterialApp(
-      home: WebViewApp(),
-    ),
-  );
+Future main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await FlutterDownloader.initialize(
+      debug: true // optional: set false to disable printing logs to console
+      );
+  await Permission.storage.request();
+  runApp(const MyApp());
 }
 
-class WebViewApp extends StatefulWidget {
-  const WebViewApp({super.key});
+class MyApp extends StatefulWidget {
+  const MyApp({super.key});
 
   @override
-  State<WebViewApp> createState() => _WebViewAppState();
+  MyAppState createState() => MyAppState();
 }
 
-late WebViewController controllerGlobal;
+class MyAppState extends State<MyApp> {
+  final GlobalKey webViewKey = GlobalKey();
+  final ReceivePort _port = ReceivePort();
+  InAppWebViewController? webView;
 
-Future<bool> _exitApp(BuildContext context) async {
-  if (await controllerGlobal.canGoBack()) {
-    print("onwill goback");
-    controllerGlobal.goBack();
-    return Future.value(false);
-  } else {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("No back history item")),
-    );
-    return Future.value(false);
-  }
-}
-
-class _WebViewAppState extends State<WebViewApp> {
-  final Completer<WebViewController> _controller =
-      Completer<WebViewController>();
-
-  // Add from here ...
   @override
   void initState() {
-    if (Platform.isAndroid) {
-      WebView.platform = SurfaceAndroidWebView();
-    }
     super.initState();
+
+    IsolateNameServer.registerPortWithName(
+        _port.sendPort, 'downloader_send_port');
+    _port.listen((dynamic data) {
+      String id = data[0];
+      DownloadTaskStatus status = data[1];
+      int progress = data[2];
+      setState(() {});
+    });
+
+    FlutterDownloader.registerCallback(downloadCallback);
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    IsolateNameServer.removePortNameMapping('downloader_send_port');
+  }
+
+  static void downloadCallback(
+      String id, DownloadTaskStatus status, int progress) {
+    final SendPort send =
+        IsolateNameServer.lookupPortByName('downloader_send_port')!;
+    send.send([id, status, progress]);
   }
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () => _exitApp(context),
-      child: Scaffold(
-        body: SafeArea(
-          child: WebView(
-            initialUrl: 'http://vcloud.mangoitsol.com/login',
-            javascriptMode: JavascriptMode.unrestricted,
-            onWebViewCreated: (WebViewController webViewController) {
-              _controller.complete(webViewController);
+    return MaterialApp(
+      home: WillPopScope(
+        onWillPop: () async {
+          // detect Android back button click
+          final controller = webView;
+          if (controller != null) {
+            if (await controller.canGoBack()) {
+              controller.goBack();
+              return false;
+            }
+          }
+          return true;
+        },
+        child: Scaffold(
+            body: SafeArea(
+          child: InAppWebView(
+            key: webViewKey,
+            initialUrlRequest:
+                URLRequest(url: WebUri('http://vcloud.mangoitsol.com/login')),
+            initialSettings: InAppWebViewSettings(
+                allowsBackForwardNavigationGestures: true,
+                useOnDownloadStart: true),
+            onWebViewCreated: (InAppWebViewController controller) {
+              webView = controller;
+            },
+            onDownloadStartRequest: (controller, url) async {
+              print("onDownloadStart $url");
+              final taskId = await FlutterDownloader.enqueue(
+                url: url.url.toString(),
+                savedDir: (await getExternalStorageDirectory())!.path,
+                // saveInPublicStorage: true,
+                showNotification: true,
+                // show download progress in status bar (for Android)
+                openFileFromNotification:
+                    true, // click on notification to open downloaded file (for Android)
+              );
             },
           ),
-        ),
+        )),
       ),
     );
   }

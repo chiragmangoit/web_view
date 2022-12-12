@@ -1,5 +1,5 @@
-name: webview_in_flutter
-description: A new Flutter project.
+name: file_download
+description: Add support to file download
 
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -20,7 +20,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 version: 1.0.0+1
 
 environment:
-  sdk: '>=2.18.5 <3.0.0'
+  sdk: '>=2.18.2 <3.0.0'
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -31,13 +31,15 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-
+  flutter_inappwebview: ^6.0.0-beta.21
+  flutter_downloader: ^1.9.1
+  permission_handler: ^10.2.0
+  path_provider: ^2.0.11
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.2
-  webview_flutter: ^3.0.4
-  path_provider: ^2.0.11
+  url_launcher: ^6.1.7
 
 dev_dependencies:
   flutter_test:
@@ -60,9 +62,6 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
-  assets:
-    - assets/www/index.html
-    - assets/www/styles/style.css
 
   # To add assets to your application, add an assets section, like this:
   # assets:
