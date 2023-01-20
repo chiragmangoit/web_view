@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:isolate';
 import 'dart:ui';
 
+import 'package:devicelocale/devicelocale.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
@@ -28,21 +29,32 @@ class MyAppState extends State<MyApp> {
   final GlobalKey webViewKey = GlobalKey();
   final ReceivePort _port = ReceivePort();
   InAppWebViewController? webView;
+  List? languages;
 
   @override
   void initState() {
+    getCurrentLanguage();
     super.initState();
-
     IsolateNameServer.registerPortWithName(
         _port.sendPort, 'downloader_send_port');
     _port.listen((dynamic data) {
       String id = data[0];
       DownloadTaskStatus status = data[1];
       int progress = data[2];
+      // final language = getCurrentLanguage();
+      // print("Current language: $language");
+
       setState(() {});
     });
 
     FlutterDownloader.registerCallback(downloadCallback);
+  }
+
+  getCurrentLanguage() async {
+    languages = await Devicelocale.preferredLanguages;
+    String? locale = await Devicelocale.currentLocale;
+    print("Current language: $languages");
+    // return Localizations.localeOf(context).languageCode;
   }
 
   @override
@@ -61,6 +73,14 @@ class MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      supportedLocales: const <Locale>[
+        Locale('de'),
+        Locale('en'),
+        Locale('es'),
+        Locale('tr'),
+        Locale('it'),
+        Locale('sp'),
+      ],
       home: WillPopScope(
         onWillPop: () async {
           // detect Android back button click
@@ -96,6 +116,11 @@ class MyAppState extends State<MyApp> {
                 openFileFromNotification:
                     true, // click on notification to open downloaded file (for Android)
               );
+            },
+            onLoadStart: (controller, url) {
+              controller.evaluateJavascript(
+                  source:
+                      "window.localStorage.setItem('language', '${languages![0].substring(0, 2)}')");
             },
           ),
         )),
