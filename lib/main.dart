@@ -98,7 +98,7 @@ class MyAppState extends State<MyApp> {
           child: InAppWebView(
             key: webViewKey,
             initialUrlRequest:
-                URLRequest(url: WebUri('http://vcloud.mangoitsol.com/login')),
+                URLRequest(url: WebUri('https://frontend.staging.verein.cloud/login')),
             initialSettings: InAppWebViewSettings(
                 allowsBackForwardNavigationGestures: true,
                 useOnDownloadStart: true),

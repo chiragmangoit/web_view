@@ -4,8 +4,8 @@
 
     <application
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher"
-        android:label="web_view"
+        android:icon="@mipmap/launcher_icon"
+        android:label="Tineon"
         android:networkSecurityConfig="@xml/network_security_config">
         <activity
             android:name=".MainActivity"
