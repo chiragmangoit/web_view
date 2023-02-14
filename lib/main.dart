@@ -97,20 +97,22 @@ class MyAppState extends State<MyApp> {
             body: SafeArea(
           child: InAppWebView(
             key: webViewKey,
-            initialUrlRequest:
-                URLRequest(url: WebUri('https://frontend.staging.verein.cloud/login')),
+            initialUrlRequest: URLRequest(
+                url: WebUri('https://frontend.staging.verein.cloud/login')),
             initialSettings: InAppWebViewSettings(
+                supportZoom: false,
                 allowsBackForwardNavigationGestures: true,
                 useOnDownloadStart: true),
             onWebViewCreated: (InAppWebViewController controller) {
               webView = controller;
             },
             onDownloadStartRequest: (controller, url) async {
-              print("onDownloadStart $url");
+              print(
+                  "onDownloadStart ${url.url.toString().replaceAll('blob:', '')}");
               final taskId = await FlutterDownloader.enqueue(
-                url: url.url.toString(),
+                url: url.url.toString().replaceAll('blob:', ''),
                 savedDir: (await getExternalStorageDirectory())!.path,
-                // saveInPublicStorage: true,
+                saveInPublicStorage: true,
                 showNotification: true,
                 // show download progress in status bar (for Android)
                 openFileFromNotification:
@@ -118,9 +120,11 @@ class MyAppState extends State<MyApp> {
               );
             },
             onLoadStart: (controller, url) {
-              controller.evaluateJavascript(
-                  source:
-                      "window.localStorage.setItem('language', '${languages![0].substring(0, 2)}')");
+              if (url.toString().contains('login')) {
+                controller.evaluateJavascript(
+                    source:
+                        "window.localStorage.setItem('language', '${languages![0].substring(0, 2)}')");
+              }
             },
           ),
         )),
